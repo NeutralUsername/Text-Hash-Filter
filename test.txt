@@ -1,0 +1,16 @@
+
+
+So what's the problem,
+
+It's a ’ (RIGHT SINGLE QUOTATION MARK - U+2019) character which is being decoded as CP-1252 instead of UTF-8. If you check the encodings table, then you see that this character is in UTF-8 composed of bytes 0xE2, 0x80 and 0x99. If you check the CP-1252 code page layout, then you'll see that each of those bytes stand for the individual characters â, € and ™.
+
+and how can I fix it?
+
+Use UTF-8 instead of CP-1252 to read, write, store, and display the characters.
+
+I have the Content-Type set to UTF-8 in both my <head> tag and my HTTP headers:
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+This only instructs the client which encoding to use to interpret and display the characters. This doesn't instruct your own program which encoding to use to read, write, store, and display the characters in. The exact answer depends on the server side platform / database / programming language used. Do note that the one set in HTTP response header has precedence over the HTML meta tag. The HTML meta tag would only be used when the page is opened from local disk file system instead of from HTTP.
+
+In addition, my browser is set to Unicode (
