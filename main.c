@@ -1,8 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if __has_include("strings.h")
+#include "strings.h"
+#endif
+
 #define MAX_WORD_LENGTH 100
 #define HASH_SIZE 37
+#define WORDS_PER_LINE 10
 
 typedef struct Node {
     char *word;
@@ -41,66 +46,64 @@ int main() {
 
 void filLBuckets(Node *buckets, FILE *fp) { // fill buckets with words from file
     char *word = malloc( MAX_WORD_LENGTH * sizeof(char)); // allocate memory for word
-    int wordLength = 0;
+    int wordIndex = 0;
     int c;
     while(1) {
         c = fgetc(fp);
-        if(c < -1 || c > 127) { // if c is not a valid character
+        if(c < -1 || c > 127) { // if c is not a valid character or -1
             continue; // skip to next character
         }
-        if(c == ' ' || c == '.' || c == '\n' || c ==';' || c==':' || c == ',' || c == '?' || c == '\t' || wordLength == MAX_WORD_LENGTH || c == EOF) { // if c is a delimiter
-            if(wordLength > 0) {  // if word is not empty. This is to prevent empty words from being added to the bucket
-                word[wordLength] = '\0';  // add null terminator to end of word
-                char *wordCopy = malloc( (strlen(word) + 1) * sizeof(char)); // allocate memory for wordCopy
+        if(c == ' ' || c == '.' || c == '\n' || c ==';' || c==':' || c == ',' || c == '?' || c == '\t' || wordIndex == MAX_WORD_LENGTH-1 || c == EOF) { // if c is a delimiter
+            if(wordIndex > 0) {  // if word is not empty. (This is to prevent empty words from being added to the buckets)
+                word[wordIndex] = '\0';  // add null terminator to end of word
+                char *wordCopy = malloc( (wordIndex + 1) * sizeof(char)); // allocate memory for wordCopy
                 strcpy(wordCopy, word); // copy word to wordCopy
                 Node *head = createNode(wordCopy); // create a new node for the word
                 insertIntoBucket(head, wordCopy, &buckets[genHash(wordCopy)]); // insert the word into the bucket
-                wordLength = 0; // reset wordLength to 0
+                wordIndex = 0; // reset wordIndex to 0 in order for the next word to be read.
             }
         }
-        else { // if c is not a delimiter
-            word[wordLength] = c;  // add c to word
-            wordLength++; // increment wordLength
+        else { // if c is not a delimiter, add c to word and increment wordIndex
+            word[wordIndex++] = c; 
         }
         if(c == EOF) { // if end of file is reached
             break;
         }
     }
-    free(word); // free word
+    free(word);
 }
 
 void filterSelections(Node *buckets, int *selection, FILE *fp) { // filter the file with the selected buckets
     fseek(fp, 0, SEEK_SET); // reset file pointer to beginning of file
-    int wordLength = 0; 
+    int wordIndex = 0; 
     int c; 
-    FILE *fp1 = fopen("file1.txt", "w"); // open file1.txt for writing
-    FILE *fp2 = fopen("file2.txt", "w"); // open file2.txt for writing
+    FILE *fp1 = fopen("input_with_selected_buckets.txt", "w"); // save input text with words filtered out that are not in selected buckets
+    FILE *fp2 = fopen("input_without_selected_buckets.txt", "w"); // save input text with words filtered out that are in selected buckets
     char *word = malloc( MAX_WORD_LENGTH * sizeof(char)); // allocate memory for word
     while(1) {
         c = fgetc(fp);
-        if(c < -1 || c > 127) { // if c is not a valid character
-            continue; // skip to next character
+        if(c < -1 || c > 127) { // if c is not a valid character, skip to next character
+            continue; 
         }
-        if(c == ' ' || c == '.' || c == '\n' || c ==';' || c==':' || c == ',' || c == '?' || c == '\t' || wordLength == MAX_WORD_LENGTH || c == EOF) { // if c is a delimiter
-            if(wordLength > 0) { 
-                word[wordLength] = '\0'; 
+        if(c == ' ' || c == '.' || c == '\n' || c ==';' || c==':' || c == ',' || c == '?' || c == '\t' || wordIndex == MAX_WORD_LENGTH-1 || c == EOF) { // if c is a delimiter
+            if(wordIndex > 0) { 
+                word[wordIndex] = '\0'; 
                 int hash = genHash(word); 
                 if(selection[hash]) { // if the bucket is selected
-                    fprintf(fp1, "%s", word); // print word to file1.txt
+                    fprintf(fp1, "%s", word);
                 }
                 else { // if the bucket is not selected
-                    fprintf(fp2, "%s", word); // print word to file2.txt
+                    fprintf(fp2, "%s", word); 
                 }
-                wordLength = 0; // reset wordLength to 0.
+                wordIndex = 0; // reset wordIndex to 0.
             }
-            if(c != EOF) {
-                fprintf(fp1, "%c", c); // print c to file1.txt 
-                fprintf(fp2, "%c", c); // print c to file2.txt
+            if(c != EOF) { // if c is not end of file, print the delimiter
+                fprintf(fp1, "%c", c); 
+                fprintf(fp2, "%c", c);  
             }
         }
-        else {
-            word[wordLength] = c; 
-            wordLength++;
+        else { // if c is not a delimiter, add c to word and increment wordIndex
+            word[wordIndex++] = c; 
         }
         if(c == EOF) {
             break;
@@ -147,53 +150,49 @@ int *selectBuckets(Node *buckets) { // select buckets to filter the file with
 }
 
 void insertIntoBucket(Node *newNode, char *word, Node *bucket) { // insert word into bucket
-    if(bucket->next == NULL) { // if bucket is empty
-        bucket->next = newNode; // add word to bucket
-        return;
-    }
     Node *prev = bucket;
     Node *current = bucket->next;
     while(current != NULL) { 
-        if(strcmp(current->word, word) == 0) { // if word is already in bucket
+        if(strcmp(current->word, word) == 0) { // if word is already in bucket increment count
             current->count++;
             free(newNode->word);
             free(newNode);
             return;
         }
-        else if(strcasecmp(current->word, word) > 0) { // if word is less than current word
+        else if(strcasecmp(current->word, word) > 0) { // if word is less than current word(alphabetically), insert word before current word
             prev->next = newNode;
             newNode->next = current;
             return;
         }
-        else { // if word is greater than current word
+        else { // if word is greater than current word, move to next word in bucket
             prev = current;
             current = current->next;
         }
     }
-    prev->next = newNode; // if word is greater than all words in bucket
+    prev->next = newNode; // if word is greater than all words in bucket (or bucket is empty), insert word at end of bucket
 }
 
 void printBucket(Node *bucket) {
     Node *current = bucket->next;
     int j = 0;
-    while(current != NULL) {
-        if(j % 10 == 0 && j > 0) {
+    while(current != NULL) { // print all words in bucket.
+        if(j % WORDS_PER_LINE == 0 && j > 0) { // print # WORDS_PER_LINE. start new lines with tab for better readability
             printf("\n\t");
         }
-        if(current->count > 1)
+        if(current->count > 1)  // if word appears more than once, print count next to word
             printf("%s(%d)", current->word, current->count);
-        else 
+        else  // if word appears only once, print word
             printf("%s", current->word);
-        if(current->next != NULL) {
+        if(current->next != NULL) { // print comma after each word except last word
             printf(", ");
         }
-        current = current->next;
+        current = current->next; 
         j++;
     }
     printf("\n");
 }
 
-void freeBuckets(Node *buckets) {
+void freeBuckets(Node *buckets) { // free all memory allocated for buckets and words
     for(int i = 0; i < HASH_SIZE; i++) { 
         Node *current = buckets[i].next;
         while(current != NULL) {
