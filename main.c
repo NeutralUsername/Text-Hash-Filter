@@ -59,7 +59,7 @@ void filLBuckets(Node *buckets, FILE *fp) { // fill buckets with words from file
                 char *wordCopy = malloc( (wordIndex + 1) * sizeof(char)); // allocate memory for wordCopy
                 strcpy(wordCopy, word); // copy word to wordCopy
                 Node *head = createNode(wordCopy); // create a new node for the word
-                insertIntoBucket(head, wordCopy, &buckets[genHash(wordCopy)]); // insert the word into the bucket
+                insertIntoBucket(head, wordCopy, &buckets[genHash(wordCopy)]); // insert the word into the proper bucket
                 wordIndex = 0; // reset wordIndex to 0 in order for the next word to be read.
             }
         }
@@ -68,6 +68,64 @@ void filLBuckets(Node *buckets, FILE *fp) { // fill buckets with words from file
         }
     } while(c != EOF);
     free(word);
+}
+
+void insertIntoBucket(Node *newNode, char *word, Node *bucket) { // insert word into bucket
+    Node *prev = bucket;
+    Node *current = bucket->next;
+    while(current != NULL) { 
+        if(strcmp(current->word, word) == 0) { // if word is already in bucket increment count
+            current->count++;
+            free(newNode->word);
+            free(newNode);
+            return;
+        }
+        else if(strcasecmp(current->word, word) > 0) { // if word is less than current word(alphabetically), insert word before current word
+            prev->next = newNode;
+            newNode->next = current;
+            return;
+        }
+        else { // if word is greater than current word, move to next word in bucket
+            prev = current;
+            current = current->next;
+        }
+    }
+    prev->next = newNode; // if word is greater than all words in bucket (or bucket is empty), insert word at end of bucket
+}
+
+int *selectBuckets(Node *buckets) { // select buckets to filter the file with
+    int *selections = calloc(HASH_SIZE, sizeof(int)); // allocate memory for selection
+    int selectionCount = 0;
+    while(1) { // loop until user enters -1
+        printf("Selected buckets: "); // print selected buckets
+        for(int i = 0; i < HASH_SIZE; i++) {
+            if(selections[i]) {
+                printf("%d ", i);
+            }
+        }
+        int index; 
+        printf("\nEnter index (-1 to stop): "); // prompt user for index to select
+        scanf("%d", &index); // read index
+        while(getchar() != '\n'); // clear input buffer (to prevent infinite loop)
+        if(index == -1) { // if user enters -1 
+            return selections; // return selections
+        }
+        else if(index >= 0 && index < HASH_SIZE) {  // if index is valid
+            if(selections[index]) { // if bucket is already selected, unselect it
+                selections[index] = 0;
+                selectionCount--;
+            }
+            else { // if bucket is not selected, select it
+                printf("Bucket[%d]: ", index); 
+                printBucket(&buckets[index]); 
+                selections[index] = 1;
+                selectionCount++;
+            }
+        }
+        else {
+            printf("Invalid index\n");
+        }
+    }
 }
 
 void filterSelections(Node *buckets, int *selection, FILE *fp) { // filter the file with the selected buckets
@@ -106,64 +164,6 @@ void filterSelections(Node *buckets, int *selection, FILE *fp) { // filter the f
     fclose(fp1);
     fclose(fp2);
     free(word);
-}
-
-int *selectBuckets(Node *buckets) { // select buckets to filter the file with
-    int *selections = calloc(HASH_SIZE, sizeof(int)); // allocate memory for selection
-    int selectionCount = 0;
-    while(1) { // loop until user enters -1
-        printf("Selected buckets: "); // print selected buckets
-        for(int i = 0; i < HASH_SIZE; i++) {
-            if(selections[i]) {
-                printf("%d ", i);
-            }
-        }
-        int index; 
-        printf("\nEnter index (-1 to stop): "); // prompt user for index to select
-        scanf("%d", &index); // read index
-        while(getchar() != '\n'); // clear input buffer (to prevent infinite loop)
-        if(index == -1) { // if user enters -1 
-            return selections; // return selections
-        }
-        else if(index >= 0 && index < HASH_SIZE) {  // if index is valid
-            if(selections[index]) { // if bucket is already selected, unselect it
-                selections[index] = 0;
-                selectionCount--;
-            }
-            else { // if bucket is not selected, select it
-                printf("Bucket[%d]: ", index); 
-                printBucket(&buckets[index]); 
-                selections[index] = 1;
-                selectionCount++;
-            }
-        }
-        else {
-            printf("Invalid index\n");
-        }
-    }
-}
-
-void insertIntoBucket(Node *newNode, char *word, Node *bucket) { // insert word into bucket
-    Node *prev = bucket;
-    Node *current = bucket->next;
-    while(current != NULL) { 
-        if(strcmp(current->word, word) == 0) { // if word is already in bucket increment count
-            current->count++;
-            free(newNode->word);
-            free(newNode);
-            return;
-        }
-        else if(strcasecmp(current->word, word) > 0) { // if word is less than current word(alphabetically), insert word before current word
-            prev->next = newNode;
-            newNode->next = current;
-            return;
-        }
-        else { // if word is greater than current word, move to next word in bucket
-            prev = current;
-            current = current->next;
-        }
-    }
-    prev->next = newNode; // if word is greater than all words in bucket (or bucket is empty), insert word at end of bucket
 }
 
 void printBucket(Node *bucket) {
