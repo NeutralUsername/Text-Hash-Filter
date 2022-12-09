@@ -48,7 +48,7 @@ void filLBuckets(Node *buckets, FILE *fp) { // fill buckets with words from file
     char *word = malloc( MAX_WORD_LENGTH * sizeof(char)); // allocate memory for word
     int wordIndex = 0;
     int c;
-    while(1) {
+    do {
         c = fgetc(fp);
         if(c < -1 || c > 127) { // if c is not a valid character or -1
             continue; // skip to next character
@@ -66,21 +66,18 @@ void filLBuckets(Node *buckets, FILE *fp) { // fill buckets with words from file
         else { // if c is not a delimiter, add c to word and increment wordIndex
             word[wordIndex++] = c; 
         }
-        if(c == EOF) { // if end of file is reached
-            break;
-        }
-    }
+    } while(c != EOF);
     free(word);
 }
 
 void filterSelections(Node *buckets, int *selection, FILE *fp) { // filter the file with the selected buckets
-    fseek(fp, 0, SEEK_SET); // reset file pointer to beginning of file
-    int wordIndex = 0; 
-    int c; 
     FILE *fp1 = fopen("input_with_selected_buckets.txt", "w"); // save input text with words filtered out that are not in selected buckets
     FILE *fp2 = fopen("input_without_selected_buckets.txt", "w"); // save input text with words filtered out that are in selected buckets
+    fseek(fp, 0, SEEK_SET); // reset file pointer to beginning of file
     char *word = malloc( MAX_WORD_LENGTH * sizeof(char)); // allocate memory for word
-    while(1) {
+    int wordIndex = 0; 
+    int c; 
+    do {
         c = fgetc(fp);
         if(c < -1 || c > 127) { // if c is not a valid character, skip to next character
             continue; 
@@ -105,10 +102,7 @@ void filterSelections(Node *buckets, int *selection, FILE *fp) { // filter the f
         else { // if c is not a delimiter, add c to word and increment wordIndex
             word[wordIndex++] = c; 
         }
-        if(c == EOF) {
-            break;
-        }
-    }
+    } while(c != EOF);
     fclose(fp1);
     fclose(fp2);
     free(word);
