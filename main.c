@@ -154,7 +154,7 @@ void insertIntoBucket(Node *newNode, char *word, Node *bucket) { // insert word 
     Node *prev = bucket;
     Node *current = bucket->next;
     while(current != NULL) { 
-        if(strcasecmp(current->word, word) == 0) { // if word is already in bucket
+        if(strcmp(current->word, word) == 0) { // if word is already in bucket
             current->count++;
             free(newNode->word);
             free(newNode);
