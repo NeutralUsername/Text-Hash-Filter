@@ -18,7 +18,7 @@ typedef struct Node {
 FILE *openFile();
 Node *createNode(char *word);
 int genHash(char *word);
-void insertIntoBucket(Node *head, char *word, Node *bucket);
+void insertIntoBucket(Node *newNode, Node *bucket);
 void freeBuckets(Node *buckets);
 int *selectBuckets(Node *buckets);
 void printBucket(Node *bucket);
@@ -59,7 +59,7 @@ void filLBuckets(Node *buckets, FILE *fp) { // fill buckets with words from file
                 char *wordCopy = malloc( (wordIndex + 1) * sizeof(char)); // allocate memory for wordCopy
                 strcpy(wordCopy, word); // copy word to wordCopy
                 Node *head = createNode(wordCopy); // create a new node for the word
-                insertIntoBucket(head, wordCopy, &buckets[genHash(wordCopy)]); // insert the word into the proper bucket
+                insertIntoBucket(head, &buckets[genHash(wordCopy)]); // insert the word into the proper bucket
                 wordIndex = 0; // reset wordIndex to 0 in order for the next word to be read.
             }
         }
@@ -70,17 +70,17 @@ void filLBuckets(Node *buckets, FILE *fp) { // fill buckets with words from file
     free(word);
 }
 
-void insertIntoBucket(Node *newNode, char *word, Node *bucket) { // insert word into bucket
+void insertIntoBucket(Node *newNode, Node *bucket) { // insert word into bucket
     Node *prev = bucket;
     Node *current = bucket->next;
     while(current != NULL) { 
-        if(strcmp(current->word, word) == 0) { // if word is already in bucket increment count
+        if(strcmp(current->word, newNode->word) == 0) { // if word is already in bucket increment count
             current->count++;
             free(newNode->word);
             free(newNode);
             return;
         }
-        else if(strcasecmp(current->word, word) > 0) { // if word is less than current word(alphabetically), insert word before current word
+        else if(strcasecmp(current->word, newNode->word) > 0) { // if word is less than current word(alphabetically), insert word before current word
             prev->next = newNode;
             newNode->next = current;
             return;
