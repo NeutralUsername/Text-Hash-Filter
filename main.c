@@ -93,7 +93,7 @@ char *parseFileStrean(FILE *fp) {
 
 void writeHashToBinaryFile(FILE *fp) {
     fseek(fp, 0, SEEK_SET); // reset file pointer to beginning of file
-    FILE *fp1 = fopen("hash.bin", "w");
+    FILE *fp1 = fopen("hash.bin", "wb");
     char *str = parseFileStrean(fp);
     while(str != NULL) {
         if(! isSeparator(str[0])) {
