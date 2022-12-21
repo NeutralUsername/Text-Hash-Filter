@@ -5,7 +5,7 @@
 #include "strings.h"
 #endif
 
-#define MAX_WORD_LENGTH 100
+#define MAX_WORD_LENGTH 50
 #define HASH_SIZE 37
 #define WORDS_PER_LINE 10
 
@@ -19,7 +19,7 @@ Node *createNode(char *word);
 int determineHashValue(char *word);
 void addNodeToBucket(Node *newNode, Node *bucket);
 void freeBuckets(Node *buckets);
-int *selectBuckets(Node *buckets);
+int *userInputBuckets(Node *buckets);
 void printBucket(Node *bucket);
 void printBuckets(Node *buckets);
 void writeSelectionToTextFile(int *selection, FILE *fp);
@@ -28,6 +28,8 @@ void loadBuckets(Node *buckets, FILE *fp);
 Node *initBuckets();
 char *userInputWord();
 void appendHashesToBinary();
+int isSeparator(char c);
+char *parseFileStrean(FILE *fp);
 
 int main(int argc, char *argv[]) {
     if(argc != 2) {
@@ -44,7 +46,7 @@ int main(int argc, char *argv[]) {
     }
     loadBuckets(buckets, fp); // fill buckets with words from file
     printBuckets(buckets); // print individual buckets
-    int *selection = selectBuckets(buckets); // select buckets to filter the file with and print individual buckets
+    int *selection = userInputBuckets(buckets); // select buckets to filter the file with and print individual buckets
     writeSelectionToTextFile(selection, fp); // filter the file with the selected buckets
     writeHashToBinaryFile(fp); // write filtered words to binary file
     appendHashesToBinary(); // add word to hash table
@@ -52,6 +54,48 @@ int main(int argc, char *argv[]) {
     freeBuckets(buckets); // free buckets
     free(selection); // free selection
     exit(0);
+}
+
+char *parseFileStrean(FILE *fp) {
+    char *word = malloc( MAX_WORD_LENGTH * sizeof(char)); // allocate memory for word
+    if(word == NULL) {
+        printf("malloc failed");
+        exit(1);
+    }
+    int wordIndex = 0;
+    int c = fgetc(fp);
+    while(c != EOF) {
+        if(c < -1 || c > 127) { // if c is not a valid character, skip to next character
+            c = fgetc(fp);
+            continue;
+        }
+        if( isSeparator(c) || wordIndex == MAX_WORD_LENGTH) { // if c is a delimiter or word is full, return word
+            if(wordIndex > 0) { 
+                word[wordIndex] = '\0';
+                if(wordIndex != MAX_WORD_LENGTH-1)
+                    fseek(fp, -1L, SEEK_CUR); // move file pointer back one character
+                return word;
+            }
+            else { 
+                word[wordIndex++] = c;
+                word[wordIndex] = '\0';
+                return word;
+            }
+        }
+        else { // if c is not a delimiter, add c to word and increment wordIndex
+            word[wordIndex++] = c;
+        }
+        c = fgetc(fp);
+    }
+    free(word);
+    return NULL;
+}
+
+int isSeparator(char c) {
+    if(c == ' ' || c == '.' || c == '\n' || c ==';' || c==':' || c == ',' || c == '?' || c == '\t') {
+        return 1;
+    }
+    return 0;
 }
 
 void appendHashesToBinary() { // add word to hash table
@@ -66,129 +110,67 @@ void appendHashesToBinary() { // add word to hash table
     free(word);
     fclose(fp);
 }
-char *userInputWord() { // get word from user
-    char *word = malloc(MAX_WORD_LENGTH * sizeof(char));
-    if(word == NULL) {
-        printf("malloc failed");
-        exit(1);
-    }
-    printf("Enter word (-1 to stop): ");
-    scanf("%s", word);
-    while(getchar() != '\n'); // clear input buffer (to prevent infinite loop)
-    return word;
-}
 
 void writeHashToBinaryFile(FILE *fp) {
-    FILE *fp1 = fopen("hash.bin", "w");
     fseek(fp, 0, SEEK_SET); // reset file pointer to beginning of file
-    char *word = malloc( MAX_WORD_LENGTH * sizeof(char)); // allocate memory for word
-    if(word == NULL) {
-        printf("malloc failed");
-        exit(1);
+    FILE *fp1 = fopen("hash.bin", "w");
+    char *str = parseFileStrean(fp);
+    while(str != NULL) {
+        if(! isSeparator(str[0])) {
+            int hash = determineHashValue(str);
+            fprintf(fp1, "%d ", hash);
+        }
+        free(str);
+        str = parseFileStrean(fp);
     }
-    int wordIndex = 0;
-    int c;
-    do {
-        c = fgetc(fp);
-        if(c < -1 || c > 127) { // if c is not a valid character, skip to next character
-            continue;
-        }
-        if(c == ' ' || c == '.' || c == '\n' || c ==';' || c==':' || c == ',' || c == '?' || c == '\t' || wordIndex == MAX_WORD_LENGTH-1 || c == EOF) { // if c is a delimiter
-            if(wordIndex > 0) {
-                word[wordIndex] = '\0';
-                int hash = determineHashValue(word);
-                fprintf(fp1, "%d ", hash);
-                wordIndex = 0; // reset wordIndex to 0.
-            }
-        }
-        else { // if c is not a delimiter, add c to word and increment wordIndex
-            word[wordIndex++] = c;
-        }
-    } while(c != EOF);
+    free(str);
     fclose(fp1);
-    free(word);
 }
 
 void writeSelectionToTextFile(int *selection, FILE *fp) { // filter the file with the selected buckets
+    fseek(fp, 0, SEEK_SET); // reset file pointer to beginning of file
     FILE *fp1 = fopen("input_text_with_selection.txt", "w"); // save input text with words filtered out that are not in selected buckets
     FILE *fp2 = fopen("input_text_without_selection.txt", "w"); // save input text with words filtered out that are in selected buckets
-    fseek(fp, 0, SEEK_SET); // reset file pointer to beginning of file
-    char *word = malloc( MAX_WORD_LENGTH * sizeof(char)); // allocate memory for word
-    if(word == NULL) {
-        printf("malloc failed");
-        exit(1);
+    char *str = parseFileStrean(fp);
+    while(str != NULL) {
+        if(! isSeparator(str[0])) {
+            int hash = determineHashValue(str);
+            if(selection[hash] == 1) {
+                fprintf(fp1, "%s", str);
+            }
+            else {
+                fprintf(fp2, "%s", str);
+            }
+        }
+        else {
+            fprintf(fp1, "%c", str[0]);
+            fprintf(fp2, "%c", str[0]);
+        }
+        free(str);
+        str = parseFileStrean(fp);
     }
-    int wordIndex = 0; 
-    int c; 
-    do {
-        c = fgetc(fp);
-        if(c < -1 || c > 127) { // if c is not a valid character, skip to next character
-            continue; 
-        }
-        if(c == ' ' || c == '.' || c == '\n' || c ==';' || c==':' || c == ',' || c == '?' || c == '\t' || wordIndex == MAX_WORD_LENGTH-1 || c == EOF) { // if c is a delimiter
-            if(wordIndex > 0) { 
-                word[wordIndex] = '\0'; 
-                int hash = determineHashValue(word); 
-                if(selection[hash]) { // if the bucket is selected
-                    fprintf(fp1, "%s", word);
-                }
-                else { // if the bucket is not selected
-                    fprintf(fp2, "%s", word); 
-                }
-                wordIndex = 0; // reset wordIndex to 0.
-            }
-            if(c != EOF) { // if c is not end of file, print the delimiter
-                fprintf(fp1, "%c", c); 
-                fprintf(fp2, "%c", c);  
-            }
-        }
-        else { // if c is not a delimiter, add c to word and increment wordIndex
-            word[wordIndex++] = c; 
-        }
-    } while(c != EOF);
+    free(str);
     fclose(fp1);
     fclose(fp2);
-    free(word);
 }
 
 void loadBuckets(Node *buckets, FILE *fp) { // fill buckets with words from file
-    char *word = malloc( MAX_WORD_LENGTH * sizeof(char)); // allocate memory for word
-    if(word == NULL) {
-        printf("malloc failed");
-        exit(1);
+    fseek(fp, 0, SEEK_SET); // reset file pointer to beginning of file
+    char *str = parseFileStrean(fp);
+    while(str != NULL) {
+        if(! isSeparator(str[0])) {
+            int hash = determineHashValue(str);
+            Node *newNode = createNode(str);
+            addNodeToBucket(newNode, &buckets[hash]);
+        }
+        else free(str);
+        str = parseFileStrean(fp);
     }
-    int wordIndex = 0;
-    int c;
-    do {
-        c = fgetc(fp);
-        if(c < -1 || c > 127) { // if c is not a valid character or -1
-            continue; // skip to next character
-        }
-        if(c == ' ' || c == '.' || c == '\n' || c ==';' || c==':' || c == ',' || c == '?' || c == '\t' || wordIndex == MAX_WORD_LENGTH-1 || c == EOF) { // if c is a delimiter
-            if(wordIndex > 0) {  // if word is not empty. (This is to prevent empty words from being added to the buckets)
-                word[wordIndex] = '\0';  // add null terminator to end of word
-                char *wordCopy = malloc( (wordIndex + 1) * sizeof(char)); // allocate memory for wordCopy
-                if(wordCopy == NULL) {
-                    printf("malloc failed");
-                    exit(1);
-                }
-                strcpy(wordCopy, word); // copy word to wordCopy
-                Node *head = createNode(wordCopy); // create a new node for the word
-                addNodeToBucket(head, &buckets[determineHashValue(wordCopy)]); // insert the word into the proper bucket
-                wordIndex = 0; // reset wordIndex to 0 in order for the next word to be read.
-            }
-        }
-        else { // if c is not a delimiter, add c to word and increment wordIndex
-            word[wordIndex++] = c; 
-        }
-    } while(c != EOF);
-    free(word);
 }
 
 void addNodeToBucket(Node *newNode, Node *bucket) { // insert Node into bucket
     Node *prev = bucket;
     Node *current = bucket->next;
-
     while(current != NULL) { 
         if(strcmp(current->word, newNode->word) == 0) { // if word is already in bucket increment count
             current->count++;
@@ -209,7 +191,19 @@ void addNodeToBucket(Node *newNode, Node *bucket) { // insert Node into bucket
     prev->next = newNode; // if word is greater than all words in bucket (or bucket is empty), insert word at end of bucket
 }
 
-int *selectBuckets(Node *buckets) { // select buckets to filter the file with
+char *userInputWord() { // get word from user
+    char *word = malloc(MAX_WORD_LENGTH * sizeof(char));
+    if(word == NULL) {
+        printf("malloc failed");
+        exit(1);
+    }
+    printf("Enter word (-1 to stop): ");
+    scanf("%s", word);
+    while(getchar() != '\n'); // clear input buffer (to prevent infinite loop)
+    return word;
+}
+
+int *userInputBuckets(Node *buckets) { // select buckets to filter the file with
     int *selections = calloc(HASH_SIZE, sizeof(int)); // allocate memory for selection
     if(selections == NULL) {
         printf("calloc failed");
