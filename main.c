@@ -172,7 +172,7 @@ void addNodeToBucket(Node *newNode, Node *bucket) { // insert Node into bucket
 }
 
 void appendHashesToBinary() { // add word to hash table
-    FILE *fp = fopen("hash.bin", "a");
+    FILE *fp = fopen("hash.bin", "ab");
     char *word = userInputString();
     while(strcmp(word, "-1") != 0) {
         int hash = determineHashValue(word);
