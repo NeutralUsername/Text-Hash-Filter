@@ -17,8 +17,7 @@ typedef struct Node {
 
 void printBucket(Node *bucket);
 void printBuckets(Node *buckets);
-char *userInputWord();
-int userInputNumber();
+char *userInputString();
 Node *createNode(char *word);
 Node *initBuckets();
 void loadBuckets(Node *buckets, FILE *fp);
@@ -58,7 +57,7 @@ int main(int argc, char *argv[]) {
 }
 
 char *parseFileStrean(FILE *fp) {
-    char *word = malloc( MAX_WORD_LENGTH * sizeof(char)); // allocate memory for word
+    char *word = malloc( (MAX_WORD_LENGTH+1) * sizeof(char)); // allocate memory for word
     if(word == NULL) {
         printf("malloc failed");
         exit(1);
@@ -174,12 +173,12 @@ void addNodeToBucket(Node *newNode, Node *bucket) { // insert Node into bucket
 
 void appendHashesToBinary() { // add word to hash table
     FILE *fp = fopen("hash.bin", "a");
-    char *word = userInputWord();
+    char *word = userInputString();
     while(strcmp(word, "-1") != 0) {
         int hash = determineHashValue(word);
         fprintf(fp, "%d ", hash);
         free(word);
-        word = userInputWord();
+        word = userInputString();
     }
     free(word);
     fclose(fp);
@@ -199,7 +198,9 @@ int *selectBuckets(Node *buckets) { // select buckets to filter the file with
             }
         }
         printf("\n");
-        int selection = userInputNumber();
+        char *selectionStr = userInputString();
+        int selection = strtod(selectionStr, NULL);
+        free(selectionStr);
         if(selection >= 0 && selection < HASH_SIZE) { // if user enters invalid selection, print error message
             selections[selection] = !selections[selection];
             printf("Bucket[%d]: ", selection);
@@ -268,7 +269,7 @@ int determineHashValue(char *word) {
     return hash % HASH_SIZE;
 }
 
-char *userInputWord() { // get word from user
+char *userInputString() { // get word from user
     char *word = malloc(MAX_WORD_LENGTH * sizeof(char));
     if(word == NULL) {
         printf("malloc failed");
@@ -278,14 +279,6 @@ char *userInputWord() { // get word from user
     scanf("%s", word);
     while(getchar() != '\n'); // clear input buffer (to prevent infinite loop)
     return word;
-}
-
-int userInputNumber() {
-    int number;
-    printf("Enter number (-1 to stop): ");
-    scanf("%d", &number);
-    while(getchar() != '\n'); // clear input buffer (to prevent infinite loop)
-    return number;
 }
 
 void printBucket(Node *bucket) {
