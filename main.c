@@ -15,19 +15,20 @@ typedef struct Node {
     struct Node *next;
 } Node;
 
-Node *createNode(char *word);
-int determineHashValue(char *word);
-void addNodeToBucket(Node *newNode, Node *bucket);
-void freeBuckets(Node *buckets);
-int *userInputBuckets(Node *buckets);
 void printBucket(Node *bucket);
 void printBuckets(Node *buckets);
+char *userInputWord();
+int userInputNumber();
+Node *createNode(char *word);
+Node *initBuckets();
+void loadBuckets(Node *buckets, FILE *fp);
+int *selectBuckets(Node *buckets);
+void appendHashesToBinary();
+void addNodeToBucket(Node *newNode, Node *bucket);
+void freeBuckets(Node *buckets);
 void writeSelectionToTextFile(int *selection, FILE *fp);
 void writeHashToBinaryFile(FILE *fp);
-void loadBuckets(Node *buckets, FILE *fp);
-Node *initBuckets();
-char *userInputWord();
-void appendHashesToBinary();
+int determineHashValue(char *word);
 int isSeparator(char c);
 char *parseFileStrean(FILE *fp);
 
@@ -46,7 +47,7 @@ int main(int argc, char *argv[]) {
     }
     loadBuckets(buckets, fp); // fill buckets with words from file
     printBuckets(buckets); // print individual buckets
-    int *selection = userInputBuckets(buckets); // select buckets to filter the file with and print individual buckets
+    int *selection = selectBuckets(buckets); // select buckets to filter the file with and print individual buckets
     writeSelectionToTextFile(selection, fp); // filter the file with the selected buckets
     writeHashToBinaryFile(fp); // write filtered words to binary file
     appendHashesToBinary(); // add word to hash table
@@ -89,26 +90,6 @@ char *parseFileStrean(FILE *fp) {
     }
     free(word);
     return NULL;
-}
-
-int isSeparator(char c) {
-    if(c == ' ' || c == '.' || c == '\n' || c ==';' || c==':' || c == ',' || c == '?' || c == '\t') {
-        return 1;
-    }
-    return 0;
-}
-
-void appendHashesToBinary() { // add word to hash table
-    FILE *fp = fopen("hash.bin", "a");
-    char *word = userInputWord();
-    while(strcmp(word, "-1") != 0) {
-        int hash = determineHashValue(word);
-        fprintf(fp, "%d ", hash);
-        free(word);
-        word = userInputWord();
-    }
-    free(word);
-    fclose(fp);
 }
 
 void writeHashToBinaryFile(FILE *fp) {
@@ -191,6 +172,102 @@ void addNodeToBucket(Node *newNode, Node *bucket) { // insert Node into bucket
     prev->next = newNode; // if word is greater than all words in bucket (or bucket is empty), insert word at end of bucket
 }
 
+void appendHashesToBinary() { // add word to hash table
+    FILE *fp = fopen("hash.bin", "a");
+    char *word = userInputWord();
+    while(strcmp(word, "-1") != 0) {
+        int hash = determineHashValue(word);
+        fprintf(fp, "%d ", hash);
+        free(word);
+        word = userInputWord();
+    }
+    free(word);
+    fclose(fp);
+}
+
+int *selectBuckets(Node *buckets) { // select buckets to filter the file with
+    int *selections = calloc(HASH_SIZE, sizeof(int)); // allocate memory for selection
+    if(selections == NULL) {
+        printf("calloc failed");
+        exit(1);
+    }
+    while(1) { // loop until user enters -1
+        printf("Selected buckets: "); // print selected buckets
+        for(int i = 0; i < HASH_SIZE; i++) {
+            if(selections[i]) {
+                printf("%d ", i);
+            }
+        }
+        printf("\n");
+        int selection = userInputNumber();
+        if(selection >= 0 && selection < HASH_SIZE) { // if user enters invalid selection, print error message
+            selections[selection] = !selections[selection];
+            printf("Bucket[%d]: ", selection);
+            printBucket(&buckets[selection]);
+        }
+        else if(selection == -1) {
+            return selections;
+        }
+        else { // if user enters valid selection, toggle selection
+            printf("Invalid selection\n");
+        }
+    }
+}
+
+Node *createNode(char *word) {
+    Node *node = malloc(sizeof(Node));
+    if(node == NULL) {
+        printf("malloc failed");
+        exit(1);
+    }
+    node->next = NULL;
+    node->count = 1;
+    node->word = word;
+    return node;
+}
+
+Node *initBuckets() { // initialize buckets
+    Node *buckets = malloc(HASH_SIZE * sizeof(Node));
+    if(buckets == NULL) {
+        printf("malloc failed");
+        exit(1);
+    }
+    for(int i = 0; i < HASH_SIZE; i++) {
+        buckets[i].next = NULL;
+    }
+    return buckets;
+}
+
+void freeBuckets(Node *buckets) { // free all memory allocated for buckets and words
+    for(int i = 0; i < HASH_SIZE; i++) { 
+        Node *current = buckets[i].next;
+        while(current != NULL) {
+            Node *temp = current;
+            current = current->next;
+            free(temp->word);
+            free(temp);
+        }
+    }
+    free(buckets);
+}
+
+int isSeparator(char c) {
+    if(c == ' ' || c == '.' || c == '\n' || c ==';' || c==':' || c == ',' || c == '?' || c == '\t') {
+        return 1;
+    }
+    return 0;
+}
+
+int determineHashValue(char *word) {
+    int hash = 0;
+    int i = 0;
+    while(word[i] != '\0') {
+        hash += word[i];
+        i++;
+    }
+    return hash % HASH_SIZE;
+}
+
 char *userInputWord() { // get word from user
     char *word = malloc(MAX_WORD_LENGTH * sizeof(char));
     if(word == NULL) {
@@ -203,43 +280,12 @@ char *userInputWord() { // get word from user
     return word;
 }
 
-int *userInputBuckets(Node *buckets) { // select buckets to filter the file with
-    int *selections = calloc(HASH_SIZE, sizeof(int)); // allocate memory for selection
-    if(selections == NULL) {
-        printf("calloc failed");
-        exit(1);
-    }
-    int selectionCount = 0;
-    while(1) { // loop until user enters -1
-        printf("Selected buckets: "); // print selected buckets
-        for(int i = 0; i < HASH_SIZE; i++) {
-            if(selections[i]) {
-                printf("%d ", i);
-            }
-        }
-        int index; 
-        printf("\nEnter index (-1 to stop): "); // prompt user for index to select
-        scanf("%d", &index); // read index
-        while(getchar() != '\n'); // clear input buffer (to prevent infinite loop)
-        if(index == -1) { // if user enters -1 
-            return selections; // return selections
-        }
-        else if(index >= 0 && index < HASH_SIZE) {  // if index is valid
-            if(selections[index]) { // if bucket is already selected, unselect it
-                selections[index] = 0;
-                selectionCount--;
-            }
-            else { // if bucket is not selected, select it
-                printf("Bucket[%d]: ", index); 
-                printBucket(&buckets[index]); 
-                selections[index] = 1;
-                selectionCount++;
-            }
-        }
-        else {
-            printf("Invalid index\n");
-        }
-    }
+int userInputNumber() {
+    int number;
+    printf("Enter number (-1 to stop): ");
+    scanf("%d", &number);
+    while(getchar() != '\n'); // clear input buffer (to prevent infinite loop)
+    return number;
 }
 
 void printBucket(Node *bucket) {
@@ -267,51 +313,4 @@ void printBuckets(Node *buckets) {
         printf("Bucket[%d]: ", i); 
         printBucket(&buckets[i]); 
     }
-}
-
-void freeBuckets(Node *buckets) { // free all memory allocated for buckets and words
-    for(int i = 0; i < HASH_SIZE; i++) { 
-        Node *current = buckets[i].next;
-        while(current != NULL) {
-            Node *temp = current;
-            current = current->next;
-            free(temp->word);
-            free(temp);
-        }
-    }
-    free(buckets);
-}
-
-Node *createNode(char *word) {
-    Node *node = malloc(sizeof(Node));
-    if(node == NULL) {
-        printf("malloc failed");
-        exit(1);
-    }
-    node->next = NULL;
-    node->count = 1;
-    node->word = word;
-    return node;
-}
-
-int determineHashValue(char *word) {
-    int hash = 0;
-    int i = 0;
-    while(word[i] != '\0') {
-        hash += word[i];
-        i++;
-    }
-    return hash % HASH_SIZE;
-}
-
-Node *initBuckets() { // initialize buckets
-    Node *buckets = malloc(HASH_SIZE * sizeof(Node));
-    if(buckets == NULL) {
-        printf("malloc failed");
-        exit(1);
-    }
-    for(int i = 0; i < HASH_SIZE; i++) {
-        buckets[i].next = NULL;
-    }
-    return buckets;
 }
