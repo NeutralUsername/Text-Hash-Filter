@@ -69,11 +69,10 @@ char *parseFileStrean(FILE *fp) {
             c = fgetc(fp);
             continue;
         }
-        if( isSeparator(c) || wordIndex == MAX_WORD_LENGTH) { // if c is a delimiter or word is full, return word
+        if(isSeparator(c)) { // if c is a delimiter or word is full, return word
             if(wordIndex > 0) { 
                 word[wordIndex] = '\0';
-                if(wordIndex != MAX_WORD_LENGTH-1)
-                    fseek(fp, -1L, SEEK_CUR); // move file pointer back one character
+                fseek(fp, -1L, SEEK_CUR); // move file pointer back one character
                 return word;
             }
             else { 
@@ -84,6 +83,10 @@ char *parseFileStrean(FILE *fp) {
         }
         else { // if c is not a delimiter, add c to word and increment wordIndex
             word[wordIndex++] = c;
+            if(wordIndex == MAX_WORD_LENGTH) {
+                word[wordIndex] = '\0';
+                return word;
+            }
         }
         c = fgetc(fp);
     }
