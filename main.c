@@ -97,6 +97,8 @@ void writeHashToBinaryFile(char *fileContents) {
         while(isSeparator(fileContents[index])) {
             index++;
         }
+        if(fileContents[index] == '\0')
+            break;
         char *word = malloc( (MAX_WORD_LENGTH+1) * sizeof(char)); // allocate memory for word
         if(word == NULL) {
             printf("malloc failed");
@@ -106,11 +108,9 @@ void writeHashToBinaryFile(char *fileContents) {
         while(fileContents[index] != '\0' && !isSeparator(fileContents[index]) && wordIndex < MAX_WORD_LENGTH) {
             word[wordIndex++] = fileContents[index++];
         }
-        if(wordIndex > 0) {
-            word[wordIndex] = '\0';
-            int hash = determineHashValue(word);
-            fprintf(fp, "%d ", hash);
-        }
+        word[wordIndex] = '\0';
+        int hash = determineHashValue(word);
+        fprintf(fp, "%d ", hash);
         free(word);
     }
     fclose(fp);
@@ -130,12 +130,14 @@ void writeSelectionToTextFile(int *selection, char *fileContents) { // filter th
             fprintf(fp2, "%c", fileContents[index]);
             index++;
         }
-        int wordIndex = 0;
+        if(fileContents[index] == '\0')
+            break;
         char *word = malloc( (MAX_WORD_LENGTH+1) * sizeof(char)); // allocate memory for word
         if(word == NULL) {
             printf("malloc failed");
             exit(1);
         }
+        int wordIndex = 0;
         while(fileContents[index] != '\0' && !isSeparator(fileContents[index]) && wordIndex < MAX_WORD_LENGTH) {
             word[wordIndex++] = fileContents[index++];
         }
@@ -159,17 +161,18 @@ void loadBuckets(Node *buckets, char *fileContents) { // fill buckets with words
         while(isSeparator(fileContents[index])){
             index++;
         }
-        int wordIndex = 0;
+        if(fileContents[index] == '\0')
+            break;
         char *word = malloc( (MAX_WORD_LENGTH+1) * sizeof(char)); // allocate memory for word
         if(word == NULL) {
             printf("malloc failed");
             exit(1);
         }
+        int wordIndex = 0;
         while( fileContents[index] != '\0' && !isSeparator(fileContents[index]) && wordIndex < MAX_WORD_LENGTH) {
             word[wordIndex++] = fileContents[index++];
         }
         word[wordIndex] = '\0';
-        printf("%s\n", word);
         int hash = determineHashValue(word);
         Node *newNode = createNode(word);
         addNodeToBucket(newNode, &buckets[hash]);
