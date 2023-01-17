@@ -8,7 +8,7 @@
 #define MAX_WORD_LENGTH 50
 #define HASH_SIZE 37
 #define WORDS_PER_LINE 10
-#define MAX_FILE_SIZE 100000
+#define MAX_FILE_LENGTH 100000
 
 typedef struct Node {
     char *word;
@@ -41,17 +41,18 @@ int main(int argc, char *argv[]) {
         printf("invalid filename");
         exit(1);
     }
-    char *tempContents = malloc((MAX_FILE_SIZE)*sizeof(char));
-    int tempContentsSize = fread(tempContents, sizeof(char), MAX_FILE_SIZE, fp); // read file into tempContents
+    char *tempContents = malloc((MAX_FILE_LENGTH)*sizeof(char));
+    size_t tempContentsSize = fread(tempContents, sizeof(char), MAX_FILE_LENGTH, fp); // read file into tempContents
     char *fileContents = malloc((tempContentsSize+1)*sizeof(char));
     int fileContentsIndex = 0;
-    for(int i = 0; i < tempContentsSize; i++) {
+    for(size_t i = 0; i < tempContentsSize; i++) { //filter out unwanted characters
         if(tempContents[i] != '\0')
             fileContents[fileContentsIndex++] = tempContents[i];
     }
     fileContents[fileContentsIndex] = '\0';
     fclose(fp);
     free(tempContents);
+
     Node *buckets = initBuckets(); // initialize buckets
     loadBuckets(buckets, fileContents); // fill buckets with words from file
     printBuckets(buckets); // print individual buckets
@@ -59,6 +60,7 @@ int main(int argc, char *argv[]) {
     writeSelectionToTextFile(selection, fileContents); // filter the file with the selected buckets
     writeHashToBinaryFile(fileContents);
     appendHashesToBinary(); // add word to hash table
+
     freeBuckets(buckets); // free buckets
     free(selection); // free selection
     free(fileContents); // free fileContents
@@ -172,29 +174,6 @@ void loadBuckets(Node *buckets, char *fileContents) { // fill buckets with words
     }
 }
 
-void addNodeToBucket(Node *newNode, Node *bucket) { // insert Node into bucket
-    Node *prev = bucket;
-    Node *current = bucket->next;
-    while(current != NULL) { 
-        if(strcmp(current->word, newNode->word) == 0) { // if word is already in bucket increment count
-            current->count++;
-            free(newNode->word);
-            free(newNode);
-            return;
-        }
-        else if(strcasecmp(current->word, newNode->word) > 0) { // if word is less than current word(alphabetically), insert word before current word
-            prev->next = newNode;
-            newNode->next = current;
-            return;
-        }
-        else { // if word is greater than current word, move to next word in bucket
-            prev = current;
-            current = current->next;
-        }
-    }
-    prev->next = newNode; // if word is greater than all words in bucket (or bucket is empty), insert word at end of bucket
-}
-
 int *selectBuckets(Node *buckets) { // select buckets to filter the file with
     int *selections = calloc(HASH_SIZE, sizeof(int)); // allocate memory for selection
     if(selections == NULL) {
@@ -224,6 +203,29 @@ int *selectBuckets(Node *buckets) { // select buckets to filter the file with
             printf("Invalid selection\n");
         }
     }
+}
+
+void addNodeToBucket(Node *newNode, Node *bucket) { // insert Node into bucket
+    Node *prev = bucket;
+    Node *current = bucket->next;
+    while(current != NULL) { 
+        if(strcmp(current->word, newNode->word) == 0) { // if word is already in bucket increment count
+            current->count++;
+            free(newNode->word);
+            free(newNode);
+            return;
+        }
+        else if(strcasecmp(current->word, newNode->word) > 0) { // if word is less than current word(alphabetically), insert word before current word
+            prev->next = newNode;
+            newNode->next = current;
+            return;
+        }
+        else { // if word is greater than current word, move to next word in bucket
+            prev = current;
+            current = current->next;
+        }
+    }
+    prev->next = newNode; // if word is greater than all words in bucket (or bucket is empty), insert word at end of bucket
 }
 
 Node *createNode(char *word) {
