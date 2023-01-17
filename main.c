@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
     char *fileContents = malloc((tempContentsSize+1)*sizeof(char));
     int fileContentsIndex = 0;
     for(size_t i = 0; i < tempContentsSize; i++) { //filter out unwanted characters
-        if(tempContents[i] != '\0')
+        if(tempContents[i] != '\0' && tempContents[i] >= 0)
             fileContents[fileContentsIndex++] = tempContents[i];
     }
     fileContents[fileContentsIndex] = '\0';
