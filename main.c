@@ -73,11 +73,13 @@ void appendHashesToBinary() { // add word to hash table
         printf("could't open hash.bin");
         exit(1);
     }
+    printf("\nEnter words to append their hash to hash.bin\n");
     char *word = userInputString();
     while(strcmp(word, "-1") != 0) {
         int hash = determineHashValue(word);
         fprintf(fp, "%d ", hash);
         free(word);
+        printf("\tappended %d to hash.bin\n", hash);
         word = userInputString();
     }
     free(word);
@@ -180,11 +182,12 @@ int *selectBuckets(Node *buckets) { // select buckets to filter the file with
         printf("calloc failed");
         exit(1);
     }
+    printf("\nSelect Bucket indices to filter\n");
     while(1) { // loop until user enters -1
         printf("Selected buckets: "); // print selected buckets
         for(int i = 0; i < HASH_SIZE; i++) {
             if(selections[i]) {
-                printf("%d ", i);
+                printf("%d, ", i);
             }
         }
         printf("\n");
@@ -193,8 +196,11 @@ int *selectBuckets(Node *buckets) { // select buckets to filter the file with
         free(selectionStr);
         if(selection >= 0 && selection < HASH_SIZE) { // if user enters invalid selection, print error message
             selections[selection] = !selections[selection];
-            printf("Bucket[%d]: ", selection);
-            printBucket(&buckets[selection]);
+            if(selections[selection]) {
+                printf("Selected Bucket[%d]: ", selection);
+                printBucket(&buckets[selection]);
+            }
+            printf("\n");
         }
         else if(selection == -1) {
             return selections;
@@ -288,7 +294,7 @@ char *userInputString() { // get word from user
         printf("malloc failed");
         exit(1);
     }
-    printf("Enter word (-1 to stop): ");
+    printf("user input (-1 to stop): ");
     scanf("%s", word);
     while(getchar() != '\n'); // clear input buffer (to prevent infinite loop)
     return word;
