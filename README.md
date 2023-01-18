@@ -1,7 +1,7 @@
 compile with:
 gcc -std=c99  -Werror -Wextra -pedantic -Wno-unused-parameter  main.c utility.c node.c buckets.c
 
-start program by providing a valid filename as parameter. e.g. "./a.out test.txt"
+start program by providing a valid filename as parameter. e.g. "./a.out -f test.txt"
 
 once the programm successfully started, a list of hash-buckets will be printed out.
 

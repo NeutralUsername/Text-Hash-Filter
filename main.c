@@ -5,6 +5,7 @@
 #include "node.h"
 #include "buckets.h"
 #include "utility.h"
+#include <unistd.h>
 
 const int MAX_WORD_LENGTH = 50;
 const int HASH_SIZE = 37;
@@ -17,11 +18,23 @@ void writeHashToBinaryFile(char *fileContents);
 void appendHashesToBinary();
 
 int main(int argc, char *argv[]) {
-    if(argc != 2) {
-        printf("no filename provided");
+    int opt;
+    char *filename = NULL;
+    while((opt = getopt(argc, argv, "f:")) != -1) {
+        switch(opt) {
+            case 'f':
+                filename = optarg;
+                break;
+            default:
+                printf("invalid argument");
+                exit(1);
+        }
+    }
+    if(filename == NULL) {
+        printf("no filename");
         exit(1);
     }
-    char *fileContents = loadFileContents(argv[1]); // load file contents into string
+    char *fileContents = loadFileContents(filename); // load file contents into string
     Node *buckets = initBuckets(); // initialize buckets
     loadBuckets(buckets, fileContents); // fill buckets with words from file
     printBuckets(buckets); // print individual buckets
