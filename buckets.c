@@ -35,6 +35,8 @@ void loadBuckets(Node *buckets, char *fileContents) { // fill buckets with words
                 wordIndex = 0;
             }
             if(fileContents[index] == '\0') { // if end of file, break loop
+                if(wordIndex == 0) 
+                    free(word);
                 break;
             }      
         }
