@@ -6,7 +6,7 @@
 #include <string.h>
 
 int isSeparator(char c) {
-    if(c == ' ' || c == '.' || c == '\n' || c ==';' || c==':' || c == ',' || c == '?' || c == '\t') {
+    if(c == ' ' || c == '.' || c == '\n' || c ==';' || c==':' || c == ',' || c == '?' || c == '\t' || c == '\r') {
         return 1;
     }
     return 0;
