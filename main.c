@@ -53,7 +53,7 @@ char *loadFileContents(char *filename) { // load file contents into string
     fileContents[fileContentsIndex] = '\0';
     fclose(fp);
     free(tempContents);
-    printf("buckets: \n", fileContentsIndex); //this printf is only here because it fixes a bug that only occurs on the provided linux VM....... i assume it is related to this issue https://stackoverflow.com/questions/28085423/the-notorious-printf-fix
+    printf("buckets: \n"); //this printf is only here because it fixes a bug that only occurs on the provided linux VM....... i assume it is related to this issue https://stackoverflow.com/questions/28085423/the-notorious-printf-fix
     return fileContents;
 }
 
