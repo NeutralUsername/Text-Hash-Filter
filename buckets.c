@@ -20,25 +20,25 @@ Node *initBuckets() { // initialize buckets
 
 void loadBuckets(Node *buckets, char *fileContents) { // fill buckets with words from file
     int index = 0;
-    while(fileContents[index] != '\0') {
-        while(isSeparator(fileContents[index])){
-            index++;
+    char *word = malloc( (MAX_WORD_LENGTH+1) * sizeof(char)); // allocate memory for word
+    int wordIndex = 0;
+    while(1) {
+        if(!isSeparator(fileContents[index]) && wordIndex < MAX_WORD_LENGTH && fileContents[index] != '\0') {
+            word[wordIndex++] = fileContents[index];
         }
-        if(fileContents[index] == '\0')
-            break;
-        char *word = malloc( (MAX_WORD_LENGTH+1) * sizeof(char)); // allocate memory for word
-        if(word == NULL) {
-            printf("malloc failed");
-            exit(1);
+        else {
+            if(wordIndex > 0) {
+                word[wordIndex] = '\0';
+                Node *newNode = createNode(word);
+                addNodeToBucket(newNode, &buckets[determineHashValue(word)]);
+                word = malloc( (MAX_WORD_LENGTH+1) * sizeof(char));
+                wordIndex = 0;
+            }
+            if(fileContents[index] == '\0') { // if end of file, break loop
+                break;
+            }      
         }
-        int wordIndex = 0;
-        while( fileContents[index] != '\0' && !isSeparator(fileContents[index]) && wordIndex < MAX_WORD_LENGTH) {
-            word[wordIndex++] = fileContents[index++];
-        }
-        word[wordIndex] = '\0';
-        int hash = determineHashValue(word);
-        Node *newNode = createNode(word);
-        addNodeToBucket(newNode, &buckets[hash]);
+        index++;
     }
 }
 
@@ -116,7 +116,7 @@ void printBucket(Node *bucket) {
 
 void printBuckets(Node *buckets) {
     for(int i = 0; i < HASH_SIZE; i++) { // print buckets 
-        printf("Bucket[%d]: ", i); 
+        printf("Bucket[%d]: \n\t", i); 
         printBucket(&buckets[i]); 
     }
 }
